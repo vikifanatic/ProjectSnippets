@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ProofListReportTemp_grandtotalsubreport" pageWidth="504" pageHeight="572" orientation="Landscape" columnWidth="504" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="de1898b2-a86c-4170-9149-8a8e72582dc3">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="BRANCH_NAME" class="java.lang.String"/>
+	<parameter name="BANK_BUSINESS_DATE" class="java.lang.String">
+		<defaultValueExpression><![CDATA["2015-12-27"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="BRANCH_CODE" class="java.lang.String">
+		<defaultValueExpression><![CDATA["00003"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="TELLER_ID" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="TELLER_ID_SQL" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[($P{TELLER_ID} == null) ? "1=1" : "p.teller_id = "+$P{TELLER_ID}]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DATE_FROM" class="java.lang.String">
+		<defaultValueExpression><![CDATA["01/31/2017"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DATE_TO" class="java.lang.String">
+		<defaultValueExpression><![CDATA["02/09/2017"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="USD_CODE" class="java.lang.String">
+		<defaultValueExpression><![CDATA["USD"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT DISTINCT
+    mode_name AS MODE_NAME,
+    mode_type AS MODE_TYPE,
+    COUNT(check_no_count) AS MODE_COUNT,
+    SUM(case currency when 'PHP' then txn_amount else 0 end) AS TXN_AMT_PESO,
+    SUM(case currency when 'USD' then txn_amount else 0 end) AS TXN_AMT_USD,
+    SUM(case currency when 'OTHERS' then txn_amount else 0 end) AS TXN_AMT_OTHERS,
+    mode_description AS MODE_DESCRIPTION
+
+ FROM ( SELECT
+	payment_id,
+	(case mode_type when 'CASH' then SUM(txn_amount)
+    	else MAX(txn_amount) end) as txn_amount,
+	currency,
+	mode_type,
+	mode_name,
+	institution_id,
+	institution_code,
+	institution_name,
+	check_index,
+	category,
+	COUNT(check_count) as check_no_count,
+           mode_description
+
+ FROM (
+		SELECT
+		     SUM(p."total_transaction_amount") AS txn_amount,
+		     SUM(case m."mode_type" when 'CHECK' then 1 else 0 end) AS check_count,
+		     p."subscriber_account_number" AS account_number,
+		     p."subscriber_account_name" AS subscriber_name,
+		     p."currency" AS currency,
+		     m."mode_type" AS mode_type,
+		     m."name" AS mode_name,
+		     p."late_check" AS late_check,
+		     p."date_created" AS date_created,
+		     p."creator_user_id" AS created_by,
+		     p."sequence_number" AS sequence_number,
+		     p."late_check_override_name" AS late_check_override_name,
+		     e."id" AS institution_id,
+		     e."code" AS institution_code,
+		     e."name" AS institution_name,
+		     r."id" AS product_id,
+		     r."code" AS product_code,
+		     r."name" AS product_name,
+		     p."id" AS payment_id,
+		     p."banking_date" AS banking_date,
+		     e."short_name" AS short_name,
+		     p."float_index" AS check_index,
+		     pfes."issuing_bank" AS bank_code,
+		     pfes."check_no" AS check_no,
+		     e."category" AS category,
+		     cx."description" AS mode_description
+		FROM
+		     "payment" p LEFT OUTER JOIN "payment_item_for_sales" pi ON p."id" = pi."payment_id"
+		     LEFT OUTER JOIN "check_index" cx ON p."float_index" = cx."float_index"
+		     LEFT OUTER JOIN "item_for_sale" i ON pi."item_for_sales_id" = i."id"
+		     LEFT OUTER JOIN "payment_mode" m ON p."mode_id" = m."id"
+		     LEFT OUTER JOIN "product" r ON p."product_id" = r."id"
+		     LEFT OUTER JOIN "branch" b ON p."receiving_unit" = b."code"
+		     LEFT OUTER JOIN "organization" o ON p."receiving_organization" = o."code"
+		     LEFT OUTER JOIN "institution_snapshot" s ON p."institution_snapshot_id" = s."id"
+		     LEFT OUTER JOIN "institution_revision" e ON s."institution_revision_id" = e."id"
+		     LEFT OUTER JOIN (
+			SELECT a.item_for_sale_id, a.issuing_bank, b.check_no
+			FROM (
+			SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+
+			) a,
+			(SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+			) b
+
+			WHERE a.item_for_sale_id = b.item_for_sale_id
+			AND a.issuing_bank IS NOT NULL
+			AND b.check_no IS NOT NULL
+			) pfes ON pfes."item_for_sale_id" = i."id"
+		WHERE
+		     p.banking_date BETWEEN $P{DATE_FROM}+' 00:00:00' AND $P{DATE_TO}+' 23:59:59'
+		 AND p.receiving_unit = $P{BRANCH_CODE}
+		 AND $P!{TELLER_ID_SQL}
+		 AND b.organization_id = o.id
+		 AND p.cancelled = 1
+		GROUP BY
+			 p.id,
+		     e.id,
+		     p.currency,
+		     m.mode_type,
+		     m.name,
+		     r.id,
+		     p.float_index,
+		     p.id,
+		     p.subscriber_account_number,
+		     p.subscriber_account_name,
+		     p.late_check,
+		     p.date_created,
+		     p.creator_name,
+		     p.sequence_number,
+		     p.late_check_override_name,
+		     e.name,
+		     r.name,
+		     p.banking_date,
+		     e.short_name,
+		     e.code,
+		     p.institution_snapshot_id,
+		     p.teller_id,
+		     p.creator_user_id,
+		     pfes."issuing_bank",
+		     pfes."check_no",
+		     e."category",
+		     r."code",
+		     cx."description"
+
+		UNION
+
+		SELECT
+		     SUM(p."total_transaction_amount") AS txn_amount,
+		     SUM(case m."mode_type" when 'CHECK' then 1 else 0 end) AS check_count,
+		     p."subscriber_account_number" AS account_number,
+		     p."subscriber_account_name" AS subscriber_name,
+		     p."currency" AS currency,
+		     m."mode_type" AS mode_type,
+		     m."name" AS mode_name,
+		     p."late_check" AS late_check,
+		     p."date_created" AS date_created,
+		     p."creator_user_id" AS created_by,
+		     p."sequence_number" AS sequence_number,
+		     p."late_check_override_name" AS late_check_override_name,
+		     e."id" AS institution_id,
+		     e."code" AS institution_code,
+		     e."name" AS institution_name,
+		     r."id" AS product_id,
+		     r."code" AS product_code,
+		     r."name" AS product_name,
+		     p."id" AS payment_id,
+		     p."banking_date" AS banking_date,
+		     e."short_name" AS short_name,
+		     p."float_index" AS check_index,
+		     pfes."issuing_bank" AS bank_code,
+		     pfes."check_no" AS check_no,
+		     e."category" AS category,
+		     cx."description" AS mode_description
+		FROM
+		     "payment_history" p LEFT OUTER JOIN "payment_history_item_for_sales" pi ON p."id" = pi."payment_history_id"
+                          LEFT OUTER JOIN "check_index" cx ON p."float_index" = cx."float_index"
+		     LEFT OUTER JOIN "item_for_sale" i ON pi."item_for_sales_id" = i."id"
+		     LEFT OUTER JOIN "payment_mode" m ON p."mode_id" = m."id"
+		     LEFT OUTER JOIN "product" r ON p."product_id" = r."id"
+		     LEFT OUTER JOIN "branch" b ON p."receiving_unit" = b."code"
+		     LEFT OUTER JOIN "organization" o ON p."receiving_organization" = o."code"
+		     LEFT OUTER JOIN "institution_snapshot" s ON p."institution_snapshot_id" = s."id"
+		     LEFT OUTER JOIN "institution_revision" e ON s."institution_revision_id" = e."id"
+		     LEFT OUTER JOIN (
+			SELECT a.item_for_sale_id, a.issuing_bank, b.check_no
+			FROM (
+			SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+
+			) a,
+			(SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+			) b
+
+			WHERE a.item_for_sale_id = b.item_for_sale_id
+			AND a.issuing_bank IS NOT NULL
+			AND b.check_no IS NOT NULL
+			) pfes ON pfes."item_for_sale_id" = i."id"
+		WHERE
+		     p.banking_date BETWEEN $P{DATE_FROM}+' 00:00:00' AND $P{DATE_TO}+' 23:59:59'
+		 AND p.receiving_unit = $P{BRANCH_CODE}
+		 AND $P!{TELLER_ID_SQL}
+		 AND b.organization_id = o.id
+		 AND p.cancelled = 1
+		GROUP BY
+			 p.id,
+		     e.id,
+		     p.currency,
+		     m.mode_type,
+		     m.name,
+		     r.id,
+		     p.float_index,
+		     p.id,
+		     p.subscriber_account_number,
+		     p.subscriber_account_name,
+		     p.late_check,
+		     p.date_created,
+		     p.creator_name,
+		     p.sequence_number,
+		     p.late_check_override_name,
+		     e.name,
+		     r.name,
+		     p.banking_date,
+		     e.short_name,
+		     e.code,
+		     p.institution_snapshot_id,
+		     p.teller_id,
+		     p.creator_user_id,
+		     pfes."issuing_bank",
+		     pfes."check_no",
+		     e."category",
+		     r."code",
+		     cx."description"
+ ) a
+
+ GROUP BY
+ payment_id,
+ account_number,
+ subscriber_name,
+ currency,
+ mode_type,
+ mode_name,
+ late_check,
+ date_created,
+ created_by,
+ sequence_number,
+ late_check_override_name,
+ institution_id,
+ institution_code,
+ institution_name,
+ product_id,
+ product_code,
+ product_name,
+ payment_id,
+ banking_date,
+ short_name,
+ check_index,
+ category,
+ mode_description
+
+) b
+
+GROUP BY
+MODE_TYPE,
+MODE_NAME,
+MODE_DESCRIPTION
+
+ORDER BY MODE_TYPE]]>
+	</queryString>
+	<field name="MODE_NAME" class="java.lang.String"/>
+	<field name="MODE_TYPE" class="java.lang.String"/>
+	<field name="MODE_COUNT" class="java.lang.Integer"/>
+	<field name="TXN_AMT_PESO" class="java.math.BigDecimal"/>
+	<field name="TXN_AMT_USD" class="java.math.BigDecimal"/>
+	<field name="TXN_AMT_OTHERS" class="java.math.BigDecimal"/>
+	<field name="MODE_DESCRIPTION" class="java.lang.String"/>
+	<variable name="TOTAL_COUNT" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[$F{MODE_COUNT}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_PESO" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{TXN_AMT_PESO}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_USD" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{TXN_AMT_USD}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_OTHERS" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{TXN_AMT_OTHERS}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<columnHeader>
+		<band height="22" splitType="Stretch">
+			<rectangle>
+				<reportElement mode="Opaque" x="414" y="8" width="80" height="11" uuid="ef1b9bf1-33e3-4b40-9f97-bec95a3d54dd"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="233" y="8" width="80" height="11" uuid="570accbc-df5f-4708-843a-7db98874880b"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="141" y="8" width="80" height="11" uuid="e41add0a-e95c-4e72-903a-440dab677556"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="141" y="8" width="80" height="10" uuid="da10a899-bff8-4f8c-b92d-905fec8db104"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[COUNT]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="323" y="8" width="80" height="11" uuid="865b8677-f391-4975-82c1-ebdd79e83445"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="10" y="8" width="121" height="11" uuid="44d65736-7c50-4073-9bb9-f1f3f0ee57b1"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="233" y="8" width="80" height="10" uuid="13d72694-fb16-4c96-8669-c1c5b3c3e482"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PESO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="414" y="8" width="80" height="10" uuid="74484994-2015-443d-81f1-f4e32912b029"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[OTHERS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="8" width="100" height="11" uuid="02b458b4-8c68-4a7d-9a9e-ffe581e271a4"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<text><![CDATA[GRAND TOTAL]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="323" y="8" width="80" height="10" uuid="8ffce688-0d83-457f-803c-93aecfcd2893"/>
+				<textElement textAlignment="Center">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{USD_CODE}]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField>
+				<reportElement x="10" y="0" width="121" height="12" uuid="7484ef1a-8015-419a-9daf-40b6041ba0c1"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Cash".equals($F{MODE_NAME}) ? $F{MODE_NAME} : $F{MODE_DESCRIPTION}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="141" y="0" width="80" height="12" uuid="cc4c02e4-9ef5-4a28-a4ab-0189ee287442"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{MODE_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="233" y="0" width="80" height="12" uuid="c1a4e6ff-d587-41bd-a7a9-86583ad35083"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($F{TXN_AMT_PESO})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="323" y="0" width="80" height="12" uuid="47ab6666-afcb-440b-8082-ce6a85f92f4c"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($F{TXN_AMT_USD})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="414" y="0" width="80" height="12" uuid="2ebd9f13-77a7-44a1-a007-ec20d18f1ab2"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($F{TXN_AMT_OTHERS})]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="60" splitType="Stretch">
+			<line>
+				<reportElement x="233" y="5" width="80" height="1" uuid="6f491ab7-96c7-4f6b-8f3e-b5296da77be6"/>
+			</line>
+			<line>
+				<reportElement x="414" y="5" width="80" height="1" uuid="37630c76-d501-45e3-a1a3-324c53a573cc"/>
+			</line>
+			<line>
+				<reportElement x="323" y="5" width="80" height="1" uuid="9703010e-5232-4627-97e7-f3146484cb78"/>
+			</line>
+			<line>
+				<reportElement x="141" y="5" width="80" height="1" uuid="244170b7-fa03-4120-bd47-7e179839d1e4"/>
+			</line>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="141" y="6" width="80" height="12" uuid="e15475eb-7ed3-433f-a24b-03d9b683cb94"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="233" y="6" width="80" height="12" uuid="4f50aeb9-ae0e-4d62-b087-91bd793c5009"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($V{TOTAL_PESO})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="323" y="6" width="80" height="12" uuid="ae345735-ce6e-4c16-95c2-97db0ed53467"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($V{TOTAL_USD})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="414" y="6" width="80" height="12" uuid="16129480-29ae-406f-a73a-9e6aaddfd538"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($V{TOTAL_OTHERS})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="40" width="504" height="20" uuid="88c05acc-73e8-4826-94d1-42c82f0b6b86"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[-- END OF REPORT --]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>

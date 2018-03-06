@@ -1,0 +1,1413 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CancelledTransactions" pageWidth="792" pageHeight="612" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="752" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isSummaryWithPageHeaderAndFooter="true" uuid="3f85dc91-a6ee-478e-8bac-5be17bf3cb48">
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="292"/>
+	<property name="ireport.y" value="432"/>
+	<import value="ph.com.org.tbg.modulename.util.security.EncryptionUtility"/>
+	<import value="ph.com.org.tbg.modulename.util.StringMaskUtil"/>
+	<parameter name="BRANCH_NAME" class="java.lang.String"/>
+	<parameter name="BANK_BUSINESS_DATE" class="java.lang.String">
+		<defaultValueExpression><![CDATA["2015-12-27"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="BRANCH_CODE" class="java.lang.String">
+		<defaultValueExpression><![CDATA["0004"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["/home/karl/Documents/WORKSPACES/org-workspace/billspay/modulename-otc/src/main/resources/jasperreports/"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="FORMATTED_BUSINESS_DATE" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="TELLER_ID" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="TELLER_ID_SQL" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[($P{TELLER_ID} == null) ? "1=1" : "p.teller_id = "+$P{TELLER_ID}]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DATE_FROM" class="java.lang.String"/>
+	<parameter name="DATE_TO" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="ORGANIZATION_NAME" class="java.lang.String"/>
+	<parameter name="USD_CODE" class="java.lang.String"/>
+	<parameter name="ENCRYPT_KEY" class="java.lang.String"/>
+	<parameter name="ENCRYPT_KEYSPECS" class="java.lang.String"/>
+	<parameter name="ENCRYPT_ALGORITHM" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[SELECT
+	payment_id,
+	(case mode_type when 'CASH' then SUM(txn_amount)
+    	else MAX(txn_amount) end) as txn_amount,
+	account_number,
+	subscriber_name,
+	currency,
+	mode_type,
+	mode_name,
+	late_check,
+	date_created,
+	created_by,
+	sequence_number,
+	late_check_override_name,
+	institution_id,
+	institution_code,
+	institution_name,
+	product_id,
+	product_code,
+	product_name,
+	product_id,
+	product_name,
+	payment_id,
+	banking_date,
+	short_name,
+	check_index,
+	category,
+	COUNT(bank_code) as bank_code_count,
+	COUNT(check_count) as check_no_count,
+          STUFF((SELECT DISTINCT ',' + bank_code
+	 FROM (
+		SELECT
+		     SUM(p."total_transaction_amount") AS txn_amount,
+		     SUM(case m."mode_type" when 'CHECK' then 1 else 0 end) AS check_count,
+		     p."subscriber_account_number" AS account_number,
+		     p."subscriber_account_name" AS subscriber_name,
+		     p."currency" AS currency,
+		     m."mode_type" AS mode_type,
+		     m."name" AS mode_name,
+		     p."late_check" AS late_check,
+		     p."date_created" AS date_created,
+		     p."creator_user_id" AS created_by,
+		     p."sequence_number" AS sequence_number,
+		     p."late_check_override_name" AS late_check_override_name,
+		     e."id" AS institution_id,
+		     e."code" AS institution_code,
+		     e."name" AS institution_name,
+		     r."id" AS product_id,
+		     r."code" AS product_code,
+		     r."name" AS product_name,
+		     p."id" AS payment_id,
+		     p."banking_date" AS banking_date,
+		     e."short_name" AS short_name,
+		     p."float_index" AS check_index,
+		     pfes."issuing_bank" AS bank_code,
+		     pfes."check_no" AS check_no,
+		     e."category" AS category
+		FROM
+		     "payment" p LEFT OUTER JOIN "payment_item_for_sales" pi ON p."id" = pi."payment_id"
+		     LEFT OUTER JOIN "item_for_sale" i ON pi."item_for_sales_id" = i."id"
+		     LEFT OUTER JOIN "payment_mode" m ON p."mode_id" = m."id"
+		     LEFT OUTER JOIN "product" r ON p."product_id" = r."id"
+		     LEFT OUTER JOIN "branch" b ON p."receiving_unit" = b."code"
+		     LEFT OUTER JOIN "organization" o ON p."receiving_organization" = o."code"
+		     LEFT OUTER JOIN "institution_snapshot" s ON p."institution_snapshot_id" = s."id"
+		     LEFT OUTER JOIN "institution_revision" e ON s."institution_revision_id" = e."id"
+		     LEFT OUTER JOIN (
+			SELECT a.item_for_sale_id, a.issuing_bank, b.check_no
+			FROM (
+			SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+
+			) a,
+			(SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+			) b
+
+			WHERE a.item_for_sale_id = b.item_for_sale_id
+			AND a.issuing_bank IS NOT NULL
+			AND b.check_no IS NOT NULL
+			) pfes ON pfes."item_for_sale_id" = i."id"
+		WHERE
+		     p.banking_date BETWEEN $P{DATE_FROM}+' 00:00:00' AND $P{DATE_TO}+' 23:59:59'
+		 AND p.receiving_unit = $P{BRANCH_CODE}
+		 AND $P!{TELLER_ID_SQL}
+		 AND b.organization_id = o.id
+		 AND p.cancelled = 1
+		GROUP BY
+			 p.id,
+		     e.id,
+		     p.currency,
+		     m.mode_type,
+		     m.name,
+		     r.id,
+		     p.float_index,
+		     p.id,
+		     p.subscriber_account_number,
+		     p.subscriber_account_name,
+		     p.late_check,
+		     p.date_created,
+		     p.creator_name,
+		     p.sequence_number,
+		     p.late_check_override_name,
+		     e.name,
+		     r.name,
+		     p.banking_date,
+		     e.short_name,
+		     e.code,
+		     p.institution_snapshot_id,
+		     p.teller_id,
+		     p.creator_user_id,
+		     pfes."issuing_bank",
+		     pfes."check_no",
+		     e."category",
+		     r."code"
+
+		UNION
+
+		SELECT
+		     SUM(p."total_transaction_amount") AS txn_amount,
+		     SUM(case m."mode_type" when 'CHECK' then 1 else 0 end) AS check_count,
+		     p."subscriber_account_number" AS account_number,
+		     p."subscriber_account_name" AS subscriber_name,
+		     p."currency" AS currency,
+		     m."mode_type" AS mode_type,
+		     m."name" AS mode_name,
+		     p."late_check" AS late_check,
+		     p."date_created" AS date_created,
+		     p."creator_user_id" AS created_by,
+		     p."sequence_number" AS sequence_number,
+		     p."late_check_override_name" AS late_check_override_name,
+		     e."id" AS institution_id,
+		     e."code" AS institution_code,
+		     e."name" AS institution_name,
+		     r."id" AS product_id,
+		     r."code" AS product_code,
+		     r."name" AS product_name,
+		     p."id" AS payment_id,
+		     p."banking_date" AS banking_date,
+		     e."short_name" AS short_name,
+		     p."float_index" AS check_index,
+		     pfes."issuing_bank" AS bank_code,
+		     pfes."check_no" AS check_no,
+		     e."category" AS category
+		FROM
+		     "payment_history" p LEFT OUTER JOIN "payment_history_item_for_sales" pi ON p."id" = pi."payment_history_id"
+		     LEFT OUTER JOIN "item_for_sale" i ON pi."item_for_sales_id" = i."id"
+		     LEFT OUTER JOIN "payment_mode" m ON p."mode_id" = m."id"
+		     LEFT OUTER JOIN "product" r ON p."product_id" = r."id"
+		     LEFT OUTER JOIN "branch" b ON p."receiving_unit" = b."code"
+		     LEFT OUTER JOIN "organization" o ON p."receiving_organization" = o."code"
+		     LEFT OUTER JOIN "institution_snapshot" s ON p."institution_snapshot_id" = s."id"
+		     LEFT OUTER JOIN "institution_revision" e ON s."institution_revision_id" = e."id"
+		     LEFT OUTER JOIN (
+			SELECT a.item_for_sale_id, a.issuing_bank, b.check_no
+			FROM (
+			SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+
+			) a,
+			(SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+			) b
+
+			WHERE a.item_for_sale_id = b.item_for_sale_id
+			AND a.issuing_bank IS NOT NULL
+			AND b.check_no IS NOT NULL
+			) pfes ON pfes."item_for_sale_id" = i."id"
+		WHERE
+		     p.banking_date BETWEEN $P{DATE_FROM}+' 00:00:00' AND $P{DATE_TO}+' 23:59:59'
+		 AND p.receiving_unit = $P{BRANCH_CODE}
+		 AND $P!{TELLER_ID_SQL}
+		 AND b.organization_id = o.id
+		 AND p.cancelled = 1
+		GROUP BY
+			 p.id,
+		     e.id,
+		     p.currency,
+		     m.mode_type,
+		     m.name,
+		     r.id,
+		     p.float_index,
+		     p.id,
+		     p.subscriber_account_number,
+		     p.subscriber_account_name,
+		     p.late_check,
+		     p.date_created,
+		     p.creator_name,
+		     p.sequence_number,
+		     p.late_check_override_name,
+		     e.name,
+		     r.name,
+		     p.banking_date,
+		     e.short_name,
+		     e.code,
+		     p.institution_snapshot_id,
+		     p.teller_id,
+		     p.creator_user_id,
+		     pfes."issuing_bank",
+		     pfes."check_no",
+		     e."category",
+		     r."code"
+ 	) b
+	 WHERE a.payment_id = b.payment_id
+	FOR XML PATH('')),1,1,'') as bank_codes,
+	STUFF((SELECT DISTINCT ',' + check_no
+	 FROM (
+		SELECT
+		     SUM(p."total_transaction_amount") AS txn_amount,
+		     SUM(case m."mode_type" when 'CHECK' then 1 else 0 end) AS check_count,
+		     p."subscriber_account_number" AS account_number,
+		     p."subscriber_account_name" AS subscriber_name,
+		     p."currency" AS currency,
+		     m."mode_type" AS mode_type,
+		     m."name" AS mode_name,
+		     p."late_check" AS late_check,
+		     p."date_created" AS date_created,
+		     p."creator_user_id" AS created_by,
+		     p."sequence_number" AS sequence_number,
+		     p."late_check_override_name" AS late_check_override_name,
+		     e."id" AS institution_id,
+		     e."code" AS institution_code,
+		     e."name" AS institution_name,
+		     r."id" AS product_id,
+		     r."code" AS product_code,
+		     r."name" AS product_name,
+		     p."id" AS payment_id,
+		     p."banking_date" AS banking_date,
+		     e."short_name" AS short_name,
+		     p."float_index" AS check_index,
+		     pfes."issuing_bank" AS bank_code,
+		     pfes."check_no" AS check_no,
+		     e."category" AS category
+		FROM
+		     "payment" p LEFT OUTER JOIN "payment_item_for_sales" pi ON p."id" = pi."payment_id"
+		     LEFT OUTER JOIN "item_for_sale" i ON pi."item_for_sales_id" = i."id"
+		     LEFT OUTER JOIN "payment_mode" m ON p."mode_id" = m."id"
+		     LEFT OUTER JOIN "product" r ON p."product_id" = r."id"
+		     LEFT OUTER JOIN "branch" b ON p."receiving_unit" = b."code"
+		     LEFT OUTER JOIN "organization" o ON p."receiving_organization" = o."code"
+		     LEFT OUTER JOIN "institution_snapshot" s ON p."institution_snapshot_id" = s."id"
+		     LEFT OUTER JOIN "institution_revision" e ON s."institution_revision_id" = e."id"
+		     LEFT OUTER JOIN (
+			SELECT a.item_for_sale_id, a.issuing_bank, b.check_no
+			FROM (
+			SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+
+			) a,
+			(SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+			) b
+
+			WHERE a.item_for_sale_id = b.item_for_sale_id
+			AND a.issuing_bank IS NOT NULL
+			AND b.check_no IS NOT NULL
+			) pfes ON pfes."item_for_sale_id" = i."id"
+		WHERE
+		     p.banking_date BETWEEN $P{DATE_FROM}+' 00:00:00' AND $P{DATE_TO}+' 23:59:59'
+		 AND p.receiving_unit = $P{BRANCH_CODE}
+		 AND $P!{TELLER_ID_SQL}
+	           AND b.organization_id = o.id
+		 AND p.cancelled = 1
+		GROUP BY
+			 p.id,
+		     e.id,
+		     p.currency,
+		     m.mode_type,
+		     m.name,
+		     r.id,
+		     p.float_index,
+		     p.id,
+		     p.subscriber_account_number,
+		     p.subscriber_account_name,
+		     p.late_check,
+		     p.date_created,
+		     p.creator_name,
+		     p.sequence_number,
+		     p.late_check_override_name,
+		     e.name,
+		     r.name,
+		     p.banking_date,
+		     e.short_name,
+		     e.code,
+		     p.institution_snapshot_id,
+		     p.teller_id,
+		     p.creator_user_id,
+		     pfes."issuing_bank",
+		     pfes."check_no",
+		     e."category",
+		     r."code"
+
+		UNION
+
+		SELECT
+		     SUM(p."total_transaction_amount") AS txn_amount,
+		     SUM(case m."mode_type" when 'CHECK' then 1 else 0 end) AS check_count,
+		     p."subscriber_account_number" AS account_number,
+		     p."subscriber_account_name" AS subscriber_name,
+		     p."currency" AS currency,
+		     m."mode_type" AS mode_type,
+		     m."name" AS mode_name,
+		     p."late_check" AS late_check,
+		     p."date_created" AS date_created,
+		     p."creator_user_id" AS created_by,
+		     p."sequence_number" AS sequence_number,
+		     p."late_check_override_name" AS late_check_override_name,
+		     e."id" AS institution_id,
+		     e."code" AS institution_code,
+		     e."name" AS institution_name,
+		     r."id" AS product_id,
+		     r."code" AS product_code,
+		     r."name" AS product_name,
+		     p."id" AS payment_id,
+		     p."banking_date" AS banking_date,
+		     e."short_name" AS short_name,
+		     p."float_index" AS check_index,
+		     pfes."issuing_bank" AS bank_code,
+		     pfes."check_no" AS check_no,
+		     e."category" AS category
+		FROM
+		     "payment_history" p LEFT OUTER JOIN "payment_history_item_for_sales" pi ON p."id" = pi."payment_history_id"
+		     LEFT OUTER JOIN "item_for_sale" i ON pi."item_for_sales_id" = i."id"
+		     LEFT OUTER JOIN "payment_mode" m ON p."mode_id" = m."id"
+		     LEFT OUTER JOIN "product" r ON p."product_id" = r."id"
+		     LEFT OUTER JOIN "branch" b ON p."receiving_unit" = b."code"
+		     LEFT OUTER JOIN "organization" o ON p."receiving_organization" = o."code"
+		     LEFT OUTER JOIN "institution_snapshot" s ON p."institution_snapshot_id" = s."id"
+		     LEFT OUTER JOIN "institution_revision" e ON s."institution_revision_id" = e."id"
+		     LEFT OUTER JOIN (
+			SELECT a.item_for_sale_id, a.issuing_bank, b.check_no
+			FROM (
+			SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+
+			) a,
+			(SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+			) b
+
+			WHERE a.item_for_sale_id = b.item_for_sale_id
+			AND a.issuing_bank IS NOT NULL
+			AND b.check_no IS NOT NULL
+			) pfes ON pfes."item_for_sale_id" = i."id"
+		WHERE
+		     p.banking_date BETWEEN $P{DATE_FROM}+' 00:00:00' AND $P{DATE_TO}+' 23:59:59'
+		 AND p.receiving_unit = $P{BRANCH_CODE}
+		 AND $P!{TELLER_ID_SQL}
+		 AND b.organization_id = o.id
+		 AND p.cancelled = 1
+		GROUP BY
+			 p.id,
+		     e.id,
+		     p.currency,
+		     m.mode_type,
+		     m.name,
+		     r.id,
+		     p.float_index,
+		     p.id,
+		     p.subscriber_account_number,
+		     p.subscriber_account_name,
+		     p.late_check,
+		     p.date_created,
+		     p.creator_name,
+		     p.sequence_number,
+		     p.late_check_override_name,
+		     e.name,
+		     r.name,
+		     p.banking_date,
+		     e.short_name,
+		     e.code,
+		     p.institution_snapshot_id,
+		     p.teller_id,
+		     p.creator_user_id,
+		     pfes."issuing_bank",
+		     pfes."check_no",
+		     e."category",
+		     r."code"
+ 	) b
+	 WHERE a.payment_id = b.payment_id
+	FOR XML PATH('')),1,1,'') as check_nos
+
+ FROM (
+		SELECT
+		     SUM(p."total_transaction_amount") AS txn_amount,
+		     SUM(case m."mode_type" when 'CHECK' then 1 else 0 end) AS check_count,
+		     p."subscriber_account_number" AS account_number,
+		     p."subscriber_account_name" AS subscriber_name,
+		     p."currency" AS currency,
+		     m."mode_type" AS mode_type,
+		     m."name" AS mode_name,
+		     p."late_check" AS late_check,
+		     p."date_created" AS date_created,
+		     p."creator_user_id" AS created_by,
+		     p."sequence_number" AS sequence_number,
+		     p."late_check_override_name" AS late_check_override_name,
+		     e."id" AS institution_id,
+		     e."code" AS institution_code,
+		     e."name" AS institution_name,
+		     r."id" AS product_id,
+		     r."code" AS product_code,
+		     r."name" AS product_name,
+		     p."id" AS payment_id,
+		     p."banking_date" AS banking_date,
+		     e."short_name" AS short_name,
+		     p."float_index" AS check_index,
+		     pfes."issuing_bank" AS bank_code,
+		     pfes."check_no" AS check_no,
+		     e."category" AS category
+		FROM
+		     "payment" p LEFT OUTER JOIN "payment_item_for_sales" pi ON p."id" = pi."payment_id"
+		     LEFT OUTER JOIN "item_for_sale" i ON pi."item_for_sales_id" = i."id"
+		     LEFT OUTER JOIN "payment_mode" m ON p."mode_id" = m."id"
+		     LEFT OUTER JOIN "product" r ON p."product_id" = r."id"
+		     LEFT OUTER JOIN "branch" b ON p."receiving_unit" = b."code"
+		     LEFT OUTER JOIN "organization" o ON p."receiving_organization" = o."code"
+		     LEFT OUTER JOIN "institution_snapshot" s ON p."institution_snapshot_id" = s."id"
+		     LEFT OUTER JOIN "institution_revision" e ON s."institution_revision_id" = e."id"
+		     LEFT OUTER JOIN (
+			SELECT a.item_for_sale_id, a.issuing_bank, b.check_no
+			FROM (
+			SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+
+			) a,
+			(SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+			) b
+
+			WHERE a.item_for_sale_id = b.item_for_sale_id
+			AND a.issuing_bank IS NOT NULL
+			AND b.check_no IS NOT NULL
+			) pfes ON pfes."item_for_sale_id" = i."id"
+		WHERE
+		     p.banking_date BETWEEN $P{DATE_FROM}+' 00:00:00' AND $P{DATE_TO}+' 23:59:59'
+		 AND p.receiving_unit = $P{BRANCH_CODE}
+		 AND $P!{TELLER_ID_SQL}
+		 AND b.organization_id = o.id
+		 AND p.cancelled = 1
+		GROUP BY
+			 p.id,
+		     e.id,
+		     p.currency,
+		     m.mode_type,
+		     m.name,
+		     r.id,
+		     p.float_index,
+		     p.id,
+		     p.subscriber_account_number,
+		     p.subscriber_account_name,
+		     p.late_check,
+		     p.date_created,
+		     p.creator_name,
+		     p.sequence_number,
+		     p.late_check_override_name,
+		     e.name,
+		     r.name,
+		     p.banking_date,
+		     e.short_name,
+		     e.code,
+		     p.institution_snapshot_id,
+		     p.teller_id,
+		     p.creator_user_id,
+		     pfes."issuing_bank",
+		     pfes."check_no",
+		     e."category",
+		     r."code"
+
+		UNION
+
+		SELECT
+		     SUM(p."total_transaction_amount") AS txn_amount,
+		     SUM(case m."mode_type" when 'CHECK' then 1 else 0 end) AS check_count,
+		     p."subscriber_account_number" AS account_number,
+		     p."subscriber_account_name" AS subscriber_name,
+		     p."currency" AS currency,
+		     m."mode_type" AS mode_type,
+		     m."name" AS mode_name,
+		     p."late_check" AS late_check,
+		     p."date_created" AS date_created,
+		     p."creator_user_id" AS created_by,
+		     p."sequence_number" AS sequence_number,
+		     p."late_check_override_name" AS late_check_override_name,
+		     e."id" AS institution_id,
+		     e."code" AS institution_code,
+		     e."name" AS institution_name,
+		     r."id" AS product_id,
+		     r."code" AS product_code,
+		     r."name" AS product_name,
+		     p."id" AS payment_id,
+		     p."banking_date" AS banking_date,
+		     e."short_name" AS short_name,
+		     p."float_index" AS check_index,
+		     pfes."issuing_bank" AS bank_code,
+		     pfes."check_no" AS check_no,
+		     e."category" AS category
+		FROM
+		     "payment_history" p LEFT OUTER JOIN "payment_history_item_for_sales" pi ON p."id" = pi."payment_history_id"
+		     LEFT OUTER JOIN "item_for_sale" i ON pi."item_for_sales_id" = i."id"
+		     LEFT OUTER JOIN "payment_mode" m ON p."mode_id" = m."id"
+		     LEFT OUTER JOIN "product" r ON p."product_id" = r."id"
+		     LEFT OUTER JOIN "branch" b ON p."receiving_unit" = b."code"
+		     LEFT OUTER JOIN "organization" o ON p."receiving_organization" = o."code"
+		     LEFT OUTER JOIN "institution_snapshot" s ON p."institution_snapshot_id" = s."id"
+		     LEFT OUTER JOIN "institution_revision" e ON s."institution_revision_id" = e."id"
+		     LEFT OUTER JOIN (
+			SELECT a.item_for_sale_id, a.issuing_bank, b.check_no
+			FROM (
+			SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+
+			) a,
+			(SELECT DISTINCT
+			i."id" as item_for_sale_id,
+			(case pf.label when 'Issuing Bank' then pfe.value else NULL end) AS issuing_bank,
+			(case pf.label when 'Check Number' then pfe.value else NULL end) AS check_no
+
+			FROM "item_for_sale" i LEFT OUTER JOIN "item_for_sale_field_entries" pfes ON pfes."item_for_sale_id" = i."id"
+		    	 LEFT OUTER JOIN "item_for_sale_field_entry" pfe ON pfe."id" = pfes."field_entries_id"
+		    	 LEFT OUTER JOIN "item_for_sale_field" pf ON pf."id" = pfe."item_for_sale_field"
+
+			GROUP BY
+			i."id",
+			pf.label,
+			pfe.value
+			) b
+
+			WHERE a.item_for_sale_id = b.item_for_sale_id
+			AND a.issuing_bank IS NOT NULL
+			AND b.check_no IS NOT NULL
+			) pfes ON pfes."item_for_sale_id" = i."id"
+		WHERE
+		     p.banking_date BETWEEN $P{DATE_FROM}+' 00:00:00' AND $P{DATE_TO}+' 23:59:59'
+		 AND p.receiving_unit = $P{BRANCH_CODE}
+		 AND $P!{TELLER_ID_SQL}
+		 AND b.organization_id = o.id
+		 AND p.cancelled = 1
+		GROUP BY
+			 p.id,
+		     e.id,
+		     p.currency,
+		     m.mode_type,
+		     m.name,
+		     r.id,
+		     p.float_index,
+		     p.id,
+		     p.subscriber_account_number,
+		     p.subscriber_account_name,
+		     p.late_check,
+		     p.date_created,
+		     p.creator_name,
+		     p.sequence_number,
+		     p.late_check_override_name,
+		     e.name,
+		     r.name,
+		     p.banking_date,
+		     e.short_name,
+		     e.code,
+		     p.institution_snapshot_id,
+		     p.teller_id,
+		     p.creator_user_id,
+		     pfes."issuing_bank",
+		     pfes."check_no",
+		     e."category",
+		     r."code"
+ ) a
+
+ GROUP BY
+ payment_id,
+ account_number,
+ subscriber_name,
+ currency,
+ mode_type,
+ mode_name,
+ late_check,
+ date_created,
+ created_by,
+ sequence_number,
+ late_check_override_name,
+ institution_id,
+ institution_code,
+ institution_name,
+ product_id,
+ product_code,
+ product_name,
+ product_id,
+ product_name,
+ payment_id,
+ banking_date,
+ short_name,
+ check_index,
+ category
+
+ ORDER BY
+ a.institution_name ASC,
+ a.product_code ASC,
+ a.date_created ASC,
+ a.mode_type,
+ a.mode_name]]>
+	</queryString>
+	<field name="payment_id" class="java.lang.String"/>
+	<field name="txn_amount" class="java.math.BigDecimal"/>
+	<field name="account_number" class="java.lang.String"/>
+	<field name="subscriber_name" class="java.lang.String"/>
+	<field name="currency" class="java.lang.String"/>
+	<field name="mode_type" class="java.lang.String"/>
+	<field name="mode_name" class="java.lang.String"/>
+	<field name="late_check" class="java.lang.Boolean"/>
+	<field name="date_created" class="java.sql.Timestamp"/>
+	<field name="created_by" class="java.lang.String"/>
+	<field name="sequence_number" class="java.lang.Integer"/>
+	<field name="late_check_override_name" class="java.lang.String"/>
+	<field name="institution_id" class="java.lang.String"/>
+	<field name="institution_code" class="java.lang.String"/>
+	<field name="institution_name" class="java.lang.String"/>
+	<field name="product_id" class="java.lang.String"/>
+	<field name="product_code" class="java.lang.String"/>
+	<field name="product_name" class="java.lang.String"/>
+	<field name="banking_date" class="java.sql.Date"/>
+	<field name="short_name" class="java.lang.String"/>
+	<field name="check_index" class="java.lang.Integer"/>
+	<field name="category" class="java.lang.String"/>
+	<field name="bank_code_count" class="java.lang.Integer"/>
+	<field name="check_no_count" class="java.lang.Integer"/>
+	<field name="bank_codes" class="java.lang.String"/>
+	<field name="check_nos" class="java.lang.String"/>
+	<variable name="TOTAL_AMOUNT" class="java.lang.Double" resetType="Group" resetGroup="institution" calculation="Sum">
+		<variableExpression><![CDATA[$F{txn_amount}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_CASH_IN" class="java.lang.Double" resetType="Group" resetGroup="institution" calculation="Sum">
+		<variableExpression><![CDATA[$F{mode_type}.equals( "CASH" ) ? $F{txn_amount} : 0.00]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_CHECK_IN" class="java.lang.Double" resetType="Group" resetGroup="institution" calculation="Sum">
+		<variableExpression><![CDATA[$F{mode_type}.equals( "CHECK" ) ? $F{txn_amount} : 0.00]]></variableExpression>
+	</variable>
+	<group name="institution">
+		<groupExpression><![CDATA[$F{institution_code}]]></groupExpression>
+		<groupHeader>
+			<band height="20">
+				<rectangle>
+					<reportElement x="16" y="4" width="255" height="13" uuid="17ad22fe-400e-4891-95be-e510c94b13df"/>
+				</rectangle>
+				<textField isBlankWhenNull="true">
+					<reportElement x="15" y="5" width="255" height="11" uuid="2b197779-94d0-4a62-9dc6-037ba3cd102e"/>
+					<textElement>
+						<font size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["  ***  "+$F{institution_code}+" - "+$F{institution_name}+"  ***   "]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="89">
+				<subreport>
+					<reportElement x="166" y="35" width="500" height="50" uuid="cae4987f-ae54-40e9-ac05-b90ee98873fa"/>
+					<subreportParameter name="BRANCH_NAME">
+						<subreportParameterExpression><![CDATA[$P{BRANCH_NAME}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="FORMATTED_BUSINESS_DATE">
+						<subreportParameterExpression><![CDATA[$P{FORMATTED_BUSINESS_DATE}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="TELLER_ID">
+						<subreportParameterExpression><![CDATA[$P{TELLER_ID}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="DATE_TO">
+						<subreportParameterExpression><![CDATA[$P{DATE_TO}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="INSTITUTION_CODE">
+						<subreportParameterExpression><![CDATA[$F{institution_code}.trim()]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="DATE_FROM">
+						<subreportParameterExpression><![CDATA[$P{DATE_FROM}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="BANKING_DATE">
+						<subreportParameterExpression><![CDATA[$F{banking_date}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="INSTITUTION_ID">
+						<subreportParameterExpression><![CDATA[$F{institution_id}.trim()]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="SUBREPORT_DIR">
+						<subreportParameterExpression><![CDATA[$P{SUBREPORT_DIR}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="BANK_BUSINESS_DATE">
+						<subreportParameterExpression><![CDATA[$P{BANK_BUSINESS_DATE}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="USD_CODE">
+						<subreportParameterExpression><![CDATA[$P{USD_CODE}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="TELLER_ID_SQL">
+						<subreportParameterExpression><![CDATA[$P{TELLER_ID_SQL}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="BRANCH_CODE">
+						<subreportParameterExpression><![CDATA[$P{BRANCH_CODE}]]></subreportParameterExpression>
+					</subreportParameter>
+					<subreportParameter name="ORGANIZATION_NAME">
+						<subreportParameterExpression><![CDATA[$P{ORGANIZATION_NAME}]]></subreportParameterExpression>
+					</subreportParameter>
+					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "BPCancelled_subtotal_subreport.jasper"]]></subreportExpression>
+				</subreport>
+				<line>
+					<reportElement x="245" y="3" width="74" height="1" uuid="2fac9eeb-74c2-4bbc-af54-693aae834637"/>
+				</line>
+				<line>
+					<reportElement x="321" y="3" width="72" height="1" uuid="033e4eab-c04d-4ad2-8ab8-8f3bd4ceb32d"/>
+				</line>
+				<line>
+					<reportElement x="395" y="3" width="72" height="1" uuid="c56121c3-1d91-426c-88c4-0f43e00c87a9"/>
+				</line>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="321" y="5" width="72" height="11" uuid="65307bab-a41f-471c-9039-7b6be4de65f1"/>
+					<textElement textAlignment="Right">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($V{TOTAL_CASH_IN})]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="249" y="5" width="70" height="11" uuid="4db77870-5042-452d-82b1-4e80ee03227a"/>
+					<textElement textAlignment="Right">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($V{TOTAL_AMOUNT})]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="395" y="5" width="72" height="11" uuid="93987fd9-67e6-4c8f-ac61-4cf35c01dfeb"/>
+					<textElement textAlignment="Right">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($V{TOTAL_CHECK_IN})]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="145" y="5" width="100" height="11" uuid="38d316a4-676c-4479-b964-c92afaffa746"/>
+					<textElement textAlignment="Right">
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Subtotal ("+$F{institution_code}+")"]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="product">
+		<groupExpression><![CDATA[$F{product_code}]]></groupExpression>
+		<groupHeader>
+			<band height="16">
+				<textField isBlankWhenNull="true">
+					<reportElement x="0" y="4" width="743" height="12" uuid="55497646-ff56-4b03-ae33-a4e04e536865">
+						<printWhenExpression><![CDATA[$F{product_name} != null]]></printWhenExpression>
+					</reportElement>
+					<textElement>
+						<font size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[" ** "+$F{product_code}+" - "+$F{product_name}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="66" splitType="Stretch">
+			<textField pattern="h:mm:ss a">
+				<reportElement x="671" y="22" width="72" height="12" uuid="3bba7d9e-dd12-4069-a2d0-016e9412728e"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="9" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="22" width="567" height="12" uuid="f4bf41f3-a24b-4589-a171-bc1043c10fcc"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[LIST OF CANCELLED BP TRANSACTIONS]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="671" y="10" width="72" height="12" uuid="1b2497ca-9d36-449c-b723-95821c28b121"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="9" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.SimpleDateFormat("MM/dd/yyyy").format(new java.util.Date())]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="616" y="10" width="49" height="12" uuid="a7d2b8d9-a040-48e4-b339-863e895fb0bf"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Run Date
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="616" y="22" width="49" height="12" uuid="22de8044-e278-47a8-88a6-ea208ac4b3bc"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Run Time]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="617" y="34" width="48" height="12" uuid="9552a60a-9927-4666-be53-9c2b84668b93"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Page]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="161" y="34" width="416" height="12" uuid="4344199a-e374-4ce8-823a-74f489513ef1"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($P{DATE_FROM} != null && $P{DATE_TO} != null && ($P{DATE_TO}).equals($P{DATE_FROM})) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM})).toUpperCase() : (
+    ($P{DATE_FROM} != null && $P{DATE_TO} != null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM})).toUpperCase()+" TO "+new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_TO})).toUpperCase() :
+        (($P{DATE_FROM} != null && $P{DATE_TO} == null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM})).toUpperCase() :
+            (($P{DATE_TO} != null && $P{DATE_FROM} == null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_TO})).toUpperCase() :
+                "No Date Range."
+            )
+        )
+    )]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="10" y="34" width="151" height="12" uuid="2dc5a070-926f-405f-a527-daca294c01b7"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FOR BANK BUSINESS DATE/S:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="10" y="10" width="567" height="12" uuid="1f0e565b-b588-4ba5-a8a9-eedd0d4b31ea"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{ORGANIZATION_NAME}+" ("+$P{BRANCH_NAME}+")"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="717" y="34" width="26" height="12" uuid="2cc28e0b-b1bc-4c41-ab5d-f8d19ca932f5"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="717" y="34" width="26" height="12" uuid="19f8295c-cca8-4e30-8d5b-16cc2a6c058f"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="671" y="34" width="46" height="12" uuid="1e5432bb-adf7-4d86-9379-d8c3ac8be35b"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="35" splitType="Stretch">
+			<staticText>
+				<reportElement x="587" y="3" width="90" height="20" uuid="3380d850-a69c-4a51-8de1-f1e48e86bd26"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Transaction Date/Time]]></text>
+			</staticText>
+			<line>
+				<reportElement x="27" y="22" width="99" height="1" uuid="dbb936fb-c0d2-407a-b287-c913c2fc19cd"/>
+			</line>
+			<line>
+				<reportElement x="527" y="22" width="39" height="1" uuid="e4f5720f-0795-4994-87c1-8c37c6f79f87"/>
+			</line>
+			<line>
+				<reportElement x="321" y="22" width="72" height="1" uuid="85646148-13fd-40a1-bec5-7346abe5a55f"/>
+			</line>
+			<line>
+				<reportElement x="395" y="22" width="72" height="1" uuid="2668367e-b796-469d-be77-e4640eaa329b"/>
+			</line>
+			<line>
+				<reportElement x="127" y="22" width="100" height="1" uuid="f4a64282-71d4-4f60-bcc3-1187733f0357"/>
+			</line>
+			<line>
+				<reportElement x="229" y="22" width="90" height="1" uuid="390ae48b-2530-4987-98c9-61091d6f8fb0"/>
+			</line>
+			<line>
+				<reportElement x="1" y="22" width="23" height="1" uuid="f167600d-ed1a-4bf5-a525-29653fa62a2b"/>
+			</line>
+			<line>
+				<reportElement x="587" y="22" width="90" height="1" uuid="1c302da1-795f-4e0b-a170-83b61f1eb0bf"/>
+			</line>
+			<line>
+				<reportElement x="678" y="22" width="65" height="1" uuid="28f043f0-2054-4d46-869b-8d079f9b2bfc"/>
+			</line>
+			<line>
+				<reportElement x="567" y="22" width="20" height="1" uuid="e91bf3ad-d7de-4a3b-a918-14de481e4d9b"/>
+			</line>
+			<line>
+				<reportElement x="491" y="22" width="35" height="1" uuid="8c1817b2-1b6a-48c1-9690-2f7fdabca326"/>
+			</line>
+			<line>
+				<reportElement x="469" y="22" width="20" height="1" uuid="9e0917e7-cc6b-47c2-af10-c7ef2753b62b"/>
+			</line>
+			<staticText>
+				<reportElement x="0" y="3" width="25" height="20" uuid="60a742a3-fcb3-46b9-91e1-44e39b38e027"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Count]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="527" y="3" width="40" height="20" uuid="47913eea-9789-4e5d-a91e-c45790147076"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Check
+No./Qty]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="127" y="3" width="100" height="20" uuid="097b56b2-8bd8-4b2a-8191-d0d81436809b"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Subscriber
+Name]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="469" y="3" width="20" height="20" uuid="ac26ab48-34ea-4878-8fe7-bb083db98114"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Chk
+Idx]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="489" y="3" width="38" height="20" uuid="9c0a8f21-8498-473c-957d-7a2c622f0cc6"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Bank
+Code]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="677" y="3" width="66" height="20" uuid="06275212-f575-4644-91d5-e8c5588a1a8f"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[User
+ID]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="27" y="3" width="100" height="20" uuid="3cc5a977-3069-4c97-a158-85d5ad8210dd"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Account
+Number]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="321" y="3" width="72" height="19" uuid="0115770a-2232-4165-a2ff-f4f8f9a940dd"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Cash
+In]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="395" y="3" width="72" height="20" uuid="70df10ec-ed37-4f60-800d-580acf048430"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Check
+In]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="567" y="3" width="20" height="20" uuid="fe59035f-3f14-40ac-9a92-3f56fae4c8e2"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Late
+Chk]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="229" y="3" width="90" height="20" uuid="0c872c8b-cd09-4707-afbd-691eef92e280"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Transaction
+Amount]]></text>
+			</staticText>
+			<line>
+				<reportElement x="1" y="2" width="23" height="1" uuid="ddeeb2fe-2b14-41e9-b1c7-a5a31ad27b0e"/>
+			</line>
+			<line>
+				<reportElement x="491" y="2" width="35" height="1" uuid="9daa4549-0837-4efe-bb5c-86a842d3dadc"/>
+			</line>
+			<line>
+				<reportElement x="127" y="2" width="100" height="1" uuid="39d5b6ec-26d1-4fd1-b691-fe14eccaf644"/>
+			</line>
+			<line>
+				<reportElement x="567" y="2" width="20" height="1" uuid="85c8a539-de9e-4b2c-a291-9a2575084512"/>
+			</line>
+			<line>
+				<reportElement x="469" y="2" width="20" height="1" uuid="6bdeaa01-26ff-4b1f-81f7-c30e3d5a422e"/>
+			</line>
+			<line>
+				<reportElement x="587" y="2" width="90" height="1" uuid="08050548-075e-4202-91c9-8a72d191b51a"/>
+			</line>
+			<line>
+				<reportElement x="527" y="2" width="39" height="1" uuid="abf09547-c950-4cee-b419-885680e1a818"/>
+			</line>
+			<line>
+				<reportElement x="395" y="2" width="72" height="1" uuid="d49e5bf6-95c7-41e5-9bf4-d09bb49ceeec"/>
+			</line>
+			<line>
+				<reportElement x="229" y="2" width="90" height="1" uuid="b9815965-473c-464b-8a94-b278a13e469a"/>
+			</line>
+			<line>
+				<reportElement x="27" y="2" width="99" height="1" uuid="7b42124f-4b2c-4b3c-bb4f-f0fcce29c470"/>
+			</line>
+			<line>
+				<reportElement x="321" y="2" width="72" height="1" uuid="1917e6a8-31e5-487b-85eb-dbc287e3be7f"/>
+			</line>
+			<line>
+				<reportElement x="678" y="2" width="65" height="1" uuid="9cd48556-8549-40e1-a548-2e1ba4b448dd"/>
+			</line>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true">
+				<reportElement x="127" y="0" width="100" height="12" uuid="a238a2b6-b29b-486d-9021-4d93e7b81193"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{subscriber_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="248" y="0" width="71" height="12" uuid="3441204d-b96d-47e3-ad6d-20215971018a"/>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($F{txn_amount})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="321" y="0" width="72" height="12" uuid="864ae67f-fec0-42dd-a651-3cc767039e9c">
+					<printWhenExpression><![CDATA[$F{mode_type}.equals( "CASH" )]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($F{txn_amount})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="395" y="0" width="72" height="12" uuid="07d083aa-959b-4e90-b581-d582353f83f6">
+					<printWhenExpression><![CDATA[$F{mode_type}.equals( "CHECK" )]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.DecimalFormat(" #,##0.00").format($F{txn_amount})]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="471" y="0" width="20" height="12" uuid="97ef5e20-4e68-4b7c-8c0c-f71032f74731">
+					<printWhenExpression><![CDATA[$F{mode_type}.equals( "CHECK" )]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{check_index} != null ? $F{check_index} : ""]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="527" y="0" width="39" height="12" uuid="f51f047f-a2fe-4690-81b0-36cd081ba492">
+					<printWhenExpression><![CDATA[$F{mode_type}.equals( "CHECK" )]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{check_no_count}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="566" y="0" width="20" height="12" uuid="419a5f01-3bc4-4c98-8448-cc9ee37d31d2">
+					<printWhenExpression><![CDATA[$F{mode_type}.equals( "CHECK" )]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{late_check} ? "YES" : "NO"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="587" y="0" width="90" height="12" uuid="327ece9d-39c1-4a23-879b-46e85156ffdf"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.SimpleDateFormat("MM/dd/yyyy HH:mm:ss").format($F{date_created})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="27" y="0" width="100" height="12" uuid="6da1df0d-94de-4fe8-be1d-ea6cd3fd2c70"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["CREDIT_CARD".equals($F{category}) ?
+    StringMaskUtil.maskNumber(new EncryptionUtility().decrypt($P{ENCRYPT_KEY},$P{ENCRYPT_KEYSPECS},$P{ENCRYPT_ALGORITHM},$F{account_number}))
+: $F{account_number}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="491" y="0" width="36" height="12" uuid="c562b7ad-c099-48b0-8f32-66d2e652ffc6">
+					<printWhenExpression><![CDATA[$F{mode_type}.equals( "CHECK" )]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[( $F{check_no_count} > 1 ) ? "VARIOUS" : $F{bank_codes}.contains(",") ? "VARIOUS" : $F{bank_codes}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="0" width="25" height="12" uuid="2708ecdc-cdfb-45e6-9262-ae9da95d46b9"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="678" y="0" width="65" height="12" uuid="dbfd2d78-e128-4c2d-b262-d76866d03347"/>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{created_by}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="227" y="0" width="20" height="12" uuid="b4681528-1e09-45ae-b021-4c905abf3926"/>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{currency}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<lastPageFooter>
+		<band height="38"/>
+	</lastPageFooter>
+	<summary>
+		<band height="50" splitType="Stretch">
+			<subreport>
+				<reportElement x="166" y="0" width="500" height="41" uuid="353e8666-08f3-47e1-a3ba-c2b8ae0a79b5"/>
+				<subreportParameter name="BRANCH_NAME">
+					<subreportParameterExpression><![CDATA[$P{BRANCH_NAME}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="SUBREPORT_DIR">
+					<subreportParameterExpression><![CDATA[$P{SUBREPORT_DIR}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="FORMATTED_BUSINESS_DATE">
+					<subreportParameterExpression><![CDATA[$P{FORMATTED_BUSINESS_DATE}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="TELLER_ID">
+					<subreportParameterExpression><![CDATA[$P{TELLER_ID}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="BANK_BUSINESS_DATE">
+					<subreportParameterExpression><![CDATA[$P{BANK_BUSINESS_DATE}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DATE_TO">
+					<subreportParameterExpression><![CDATA[$P{DATE_TO}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="USD_CODE">
+					<subreportParameterExpression><![CDATA[$P{USD_CODE}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="TELLER_ID_SQL">
+					<subreportParameterExpression><![CDATA[$P{TELLER_ID_SQL}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="BRANCH_CODE">
+					<subreportParameterExpression><![CDATA[$P{BRANCH_CODE}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DATE_FROM">
+					<subreportParameterExpression><![CDATA[$P{DATE_FROM}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="ORGANIZATION_NAME">
+					<subreportParameterExpression><![CDATA[$P{ORGANIZATION_NAME}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "BPCancelled_grandtotal_subreport.jasper"]]></subreportExpression>
+			</subreport>
+		</band>
+	</summary>
+	<noData>
+		<band height="137">
+			<staticText>
+				<reportElement x="0" y="82" width="743" height="12" uuid="ed99a8cb-8e3f-4219-b89d-c655dab67352"/>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[No records found.]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="671" y="10" width="72" height="12" uuid="64d7b0b6-adc8-4465-a058-07322a45bd25"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="9" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.SimpleDateFormat("MM/dd/yyyy").format(new java.util.Date())]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="617" y="10" width="49" height="12" uuid="e37a8bc1-702f-4e7d-9243-bc53d6bd0613"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Run Date
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="22" width="566" height="12" uuid="931954d9-84b9-4d7d-bf23-08fbd8ba5922"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[LIST OF CANCELLED BP TRANSACTIONS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="617" y="22" width="49" height="12" uuid="8dacf47b-6456-4432-a76d-0285d044a4ab"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Run Time]]></text>
+			</staticText>
+			<textField pattern="h:mm:ss a">
+				<reportElement x="671" y="22" width="72" height="12" uuid="f69873da-32ce-4f4b-ad4c-5ee2f6c1dfb0"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="9" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="185" y="34" width="391" height="12" uuid="7b167d90-d3e3-42e5-a4e7-eed07e4cb697"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($P{DATE_FROM} != null && $P{DATE_TO} != null && ($P{DATE_TO}).equals($P{DATE_FROM})) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM})) : (
+    ($P{DATE_FROM} != null && $P{DATE_TO} != null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM}))+" TO "+new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_TO})) :
+        (($P{DATE_FROM} != null && $P{DATE_TO} == null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM})) :
+            (($P{DATE_TO} != null && $P{DATE_FROM} == null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_TO})) :
+                "No Date Range."
+            )
+        )
+    )]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="12" y="34" width="173" height="12" uuid="f2598980-4dbc-4b71-8d83-8eab8d3fd8d7"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FOR BANK BUSINESS DATE/S:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="12" y="10" width="564" height="12" uuid="f00a0472-2ffd-4381-a8ff-6691d2fa4358"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{ORGANIZATION_NAME}+" ("+$P{BRANCH_NAME}+")"]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

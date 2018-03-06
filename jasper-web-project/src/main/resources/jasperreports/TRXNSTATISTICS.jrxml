@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.1.1.final using JasperReports Library version 6.1.1  -->
+<!-- 2017-01-18T14:03:43 -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="BPSUMMARY" pageWidth="595" pageHeight="842" whenNoDataType="NoDataSection" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="66c5955b-213c-46f1-bde1-5eb1044ffe85">
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="225"/>
+	<property name="ireport.y" value="32"/>
+	<parameter name="BANK_BUSINESS_DATE" class="java.lang.String"/>
+	<parameter name="BRANCH_NAME" class="java.lang.String"/>
+	<parameter name="userId" class="java.lang.String"/>
+	<parameter name="transactionCount" class="java.lang.String"/>
+	<parameter name="ecTransactionCount" class="java.lang.String"/>
+	<parameter name="DATE_FROM" class="java.lang.String"/>
+	<parameter name="DATE_TO" class="java.lang.String"/>
+	<parameter name="ORGANIZATION_NAME" class="java.lang.String"/>
+	<field name="createdBy" class="java.lang.String"/>
+	<field name="transactionCount" class="java.lang.Long"/>
+	<field name="cancelledTxn" class="java.lang.Long"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band height="51" splitType="Stretch">
+			<staticText>
+				<reportElement x="416" y="5" width="49" height="12" uuid="c43a2f12-af22-4a07-835f-eef9436c1577"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<text><![CDATA[Run Date
+]]></text>
+			</staticText>
+			<textField pattern="h:mm:ss a">
+				<reportElement x="468" y="17" width="72" height="12" uuid="ce7920b3-1faf-4129-a91a-1251ffa578e8"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="416" y="17" width="49" height="12" uuid="894cceb3-9847-4607-a016-161c21a0b3b1"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<text><![CDATA[Run Time]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="17" width="396" height="12" uuid="7b1273fd-0b00-4524-b2e0-bfda470ba7d6"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TRANSACTION STATISTICS REPORT]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="416" y="29" width="35" height="12" uuid="68930e15-89dc-4c91-9868-84d81ceb1720"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<text><![CDATA[Page]]></text>
+			</staticText>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="468" y="29" width="72" height="12" uuid="d186bf5f-bce3-426e-8895-16e0b5efad1f"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" "+$V{PAGE_NUMBER}+" of" +" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="468" y="5" width="72" height="12" uuid="c6891ead-d586-4470-ae37-ac5fd311b834"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.SimpleDateFormat("MM/dd/yyyy").format(new java.util.Date())]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="164" y="29" width="241" height="12" uuid="063d06ed-5c6f-4e3c-b3bf-ff1806a227df"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($P{DATE_FROM} != null && $P{DATE_TO} != null && ($P{DATE_TO}).equals($P{DATE_FROM})) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM})) : (
+    ($P{DATE_FROM} != null && $P{DATE_TO} != null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM}))+" TO "+new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_TO})) :
+        (($P{DATE_FROM} != null && $P{DATE_TO} == null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM})) :
+            (($P{DATE_TO} != null && $P{DATE_FROM} == null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_TO})) :
+                "No Date Range."
+            )
+        )
+    )]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="10" y="29" width="154" height="12" uuid="9d9971cc-2f6c-4d89-8761-fb7c1fd458b2"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FOR BANK BUSINESS DATE/S:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="10" y="5" width="395" height="12" uuid="352483b8-0e0f-4e06-ac70-f01fcd984882"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{ORGANIZATION_NAME}+" ("+$P{BRANCH_NAME}+")"]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="39" splitType="Stretch">
+			<staticText>
+				<reportElement x="385" y="19" width="135" height="20" uuid="8b74b03c-2b70-48f3-a58c-e444caf3770d"/>
+				<textElement textAlignment="Center">
+					<font fontName="DejaVu Sans" size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[No. of EC Transactions]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="209" y="19" width="135" height="20" uuid="8e787b6e-5448-4ab5-b223-fa7374751c7c"/>
+				<textElement textAlignment="Center">
+					<font fontName="DejaVu Sans" size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[No. of Transactions]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="29" y="19" width="135" height="20" uuid="14b67db7-9d11-43c8-8a90-b23033a7eeab"/>
+				<textElement textAlignment="Center">
+					<font fontName="DejaVu Sans" size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[User ID]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="18" splitType="Stretch">
+			<textField>
+				<reportElement x="209" y="0" width="135" height="13" uuid="d0535ac8-148b-41ff-9ec4-c250f75ccb33"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{transactionCount}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="29" y="0" width="135" height="13" uuid="cf6917ed-4c60-4b4a-a4a3-56958d93e62c"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{createdBy}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="385" y="0" width="135" height="13" uuid="c6212add-cfdd-4f01-abef-5ced3a449962"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{cancelledTxn}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="40">
+			<staticText>
+				<reportElement x="227" y="17" width="100" height="20" uuid="5a9874f5-3a5e-4e7f-9e96-120c412c1706"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[-- End of Report --]]></text>
+			</staticText>
+		</band>
+	</summary>
+	<noData>
+		<band height="108">
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="457" y="10" width="72" height="12" uuid="4d92fe05-169e-41ec-86e0-bd2f70b6ee03"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.text.SimpleDateFormat("MM/dd/yyyy").format(new java.util.Date())]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="405" y="10" width="49" height="12" uuid="2daa6b5b-2cc9-4848-b70a-0e22a22b6324"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<text><![CDATA[Run Date
+]]></text>
+			</staticText>
+			<textField pattern="h:mm:ss a">
+				<reportElement x="457" y="22" width="72" height="12" uuid="92effb9b-fd77-4b1e-90d2-f47c71158b31"/>
+				<textElement textAlignment="Right">
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="405" y="22" width="49" height="12" uuid="ff8a64d7-30e6-4d36-8a79-558b1790e83a"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="10"/>
+				</textElement>
+				<text><![CDATA[Run Time]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="22" width="396" height="12" uuid="f64af9d6-20ee-43ec-a23c-44cda4f33374"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[TRANSACTION STATISTICS REPORT]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="67" width="555" height="12" uuid="2ca0092e-322b-48f6-802e-d1c69f4f3f53"/>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[No records found.]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="164" y="34" width="241" height="12" uuid="63a88ee5-bb7f-4db1-b5d4-cd575f9d47c3"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($P{DATE_FROM} != null && $P{DATE_TO} != null && ($P{DATE_TO}).equals($P{DATE_FROM})) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM})) : (
+    ($P{DATE_FROM} != null && $P{DATE_TO} != null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM}))+" TO "+new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_TO})) :
+        (($P{DATE_FROM} != null && $P{DATE_TO} == null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_FROM})) :
+            (($P{DATE_TO} != null && $P{DATE_FROM} == null) ? new java.text.SimpleDateFormat("MMMM dd, yyyy").format(new java.text.SimpleDateFormat("MM/dd/yyyy").parse($P{DATE_TO})) :
+                "No Date Range."
+            )
+        )
+    )]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="10" y="34" width="154" height="12" uuid="b7d89321-d0db-4efd-8866-ee020e68d4cd"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FOR BANK BUSINESS DATE/S:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="10" y="10" width="395" height="12" uuid="fd571565-c998-4bd8-9045-243f811dcbe2"/>
+				<textElement>
+					<font fontName="DejaVu Sans" size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{ORGANIZATION_NAME}+" ("+$P{BRANCH_NAME}+")"]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

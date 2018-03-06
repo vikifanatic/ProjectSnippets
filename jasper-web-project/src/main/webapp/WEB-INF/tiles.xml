@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE tiles-definitions PUBLIC
+       "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+       "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+
+<tiles-definitions>
+
+	<definition name="view-pdf" template="/WEB-INF/report/viewer.jsp">
+	</definition>
+
+	<!-- For pages with logged-in users -->
+	<definition name="base" template="/WEB-INF/layout/base.jsp">
+		<put-attribute name="title" value="ph.com.org.tbg.modulename.message.label.application.title" />
+		<put-attribute name="pageTitle" value="" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="topMenu" value="/WEB-INF/layout/top-menu.jsp" />
+		<put-list-attribute name="styles" inherit="true" >
+			<add-attribute value="/css/reset.css" />
+			<add-attribute value="/css/dialog.css" />
+			<add-attribute value="/css/global.css" />
+			<add-attribute value="/resources/css/website.css" />
+			<add-attribute value="/resources/css/help.css" />
+			<add-attribute value="/webjars/jquery-ui/1.11.4/jquery-ui.min.css" />
+			<add-attribute value="/webjars/jquery-ui/1.11.4/jquery-ui.structure.min.css" />
+			<add-attribute value="/webjars/jquery-ui/1.11.4/jquery-ui.theme.min.css" />
+			<add-attribute value="/css/lib/jquery.ui.timepicker.css" />
+			<add-attribute value="/css/lib/datatables.min.css" />
+		</put-list-attribute>
+		<put-list-attribute name="scripts" inherit="true">
+			<add-attribute value="/webjars/jquery/2.2.2/jquery.min.js" />
+			<add-attribute value="/webjars/underscorejs/1.8.3/underscore-min.js" />
+			<add-attribute value="/js/underscore-config.js" />
+			<add-attribute value="/js/lib/datatables.min.js" />
+			<add-attribute value="/webjars/jquery-ui/1.11.4/jquery-ui.min.js" />
+			<add-attribute value="/js/lib/jquery.ui.timepicker.js" />
+			<add-attribute value="/js/lib/jquery.numeric.js" />
+			<add-attribute value="/js/integer.js" />
+			<add-attribute value="/js/script.js" />
+			<add-attribute value="/js/utilities.js" />
+			<add-attribute value="/resources/js/otcConfig.js" />
+			<add-attribute value="/resources/js/jstz.min.js" />
+			<add-attribute value="/js/dialog.js" />
+			<add-attribute value="/resources/js/sessionTimeout.js" />
+			<add-attribute value="/js/lib/moment.js" />
+		</put-list-attribute>
+	</definition>
+
+	<!-- For both public pages -->
+	<definition name="base-plain" template="/WEB-INF/layout/base-plain.jsp">
+		<put-attribute name="title" value="ph.com.org.tbg.modulename.message.label.application.title" />
+		<put-attribute name="body" value="" />
+		<put-list-attribute name="styles">
+			<add-attribute value="/css/reset.css" />
+			<add-attribute value="/css/login.css" />
+		</put-list-attribute>
+	</definition>
+
+	<!-- Error Pages -->
+	<definition name="error/500" template="/WEB-INF/views/error/500.jsp" />
+	<definition name="error/403" template="/WEB-INF/views/error/403.jsp" />
+	<definition name="error/404" template="/WEB-INF/views/error/404.jsp" />
+	
+	<definition name="branch-report" extends="base">
+		<put-attribute name="pageTitle" value="ph.com.org.tbg.modulename.message.BranchReport.title" />
+		<put-attribute name="body" value="/WEB-INF/report/branch-report-datatable.jsp"/>
+	</definition>
+
+	<definition name="defaultLandingPage" extends="base">
+		<put-attribute name="title" value="ph.com.org.tbg.modulename.message.application.head" />
+		<put-attribute name="pageTitle" value="ph.com.org.tbg.modulename.message.application.title" />
+		<put-attribute name="body" value="/WEB-INF/views/landingPage.jsp" />
+	</definition>
+	
+</tiles-definitions>
